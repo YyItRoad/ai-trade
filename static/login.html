@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欢迎使用 AI 交易分析工具</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container" style="max-width: 600px; margin-top: 10vh;">
+        <h1>AI 交易分析工具</h1>
+        <p style="text-align: center; color: #555;">
+            本工具通过结合多种时间周期的 K 线数据与先进的 AI 大语言模型，为您提供量化的交易分析、潜在的交易计划以及关键的支撑阻力位。
+            请在下方输入您的配置密钥以继续。
+        </p>
+        
+        <div class="form-group" style="margin-top: 30px; display: flex; justify-content: center;">
+            <input type="password" id="api-key-input" placeholder="请输入您的密钥" style="padding: 12px; font-size: 16px; width: 100%; max-width: 400px;">
+        </div>
+        
+        <button id="save-key-btn" style="width: 100%; padding: 12px; margin-top: 15px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">登录</button>
+        
+        <p id="login-status-message" class="status-message" style="text-align: center; margin-top: 15px;"></p>
+    </div>
+
+    <script src="/static/login.js"></script>
+</body>
+</html>

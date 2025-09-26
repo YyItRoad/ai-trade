@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 交易分析</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>AI 交易分析历史</h1>
+
+        <div class="actions-container">
+            <div class="actions-left">
+                <select id="asset-selector">
+                    <option value="">所有资产</option>
+                </select>
+                <button id="query-btn">查询</button>
+            </div>
+            <div class="actions-right">
+                 <a href="/manage" class="manage-link">管理资产</a>
+            </div>
+        </div>
+        <p id="status-message" class="status-message"></p>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>时间戳</th>
+                        <th>资产</th>
+                        <th>结论</th>
+                        <th>方向</th>
+                        <th>置信度</th>
+                        <th>入场点</th>
+                        <th>止损点</th>
+                        <th>止盈点 1</th>
+                        <th>详情</th>
+                    </tr>
+                </thead>
+                <tbody id="analysis-table-body">
+                    <!-- 数据将由 JavaScript 在此加载 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination-container">
+            <button id="first-page">&laquo; 首页</button>
+            <button id="prev-page">&lsaquo; 上一页</button>
+            <span id="page-info">第 1 页 / 共 1 页</span>
+            <button id="next-page">下一页 &rsaquo;</button>
+            <button id="last-page">末页 &raquo;</button>
+        </div>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div id="details-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>分析详情</h2>
+            <pre id="modal-data"></pre>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

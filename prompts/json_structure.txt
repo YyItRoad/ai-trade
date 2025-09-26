@@ -1,0 +1,35 @@
+{
+  "asset": "[String]",
+  "tradePlan": {
+    "conclusion": "[ENUM: 'OPEN_POSITION', 'CLOSE_POSITION', 'HOLD_POSITION', 'STAY_FLAT']",
+    "direction": "[ENUM: 'LONG', 'SHORT', 'NONE']",
+    "confidence": "[Float, 0.0 to 1.0]",
+    "riskRewardRatio": "[String, e.g., '3.5:1']"
+  },
+  "levels": {
+    "entryPoint": "[Number, suggested entry price]",
+    "stopLoss": "[Number, invalidation price]",
+    "takeProfit": {
+      "tp1": "[Number]",
+      "tp2": "[Number, optional]"
+    }
+  },
+  "analysis": {
+    "summary": "[String, one-sentence summary of the trade idea]",
+    "waveAnalysis": [
+      {
+        "timeframe": "[String, e.g., '4H']",
+        "status": "[String, description of wave count and pattern]"
+      },
+      {
+        "timeframe": "[String, e.g., '1H']",
+        "status": "[String, description of wave count and pattern]"
+      },
+      {
+        "timeframe": "[String, e.g., '15M']",
+        "status": "[String, description of wave count and pattern]"
+      }
+    ],
+    "rationale": "[String, detailed text tying the wave analysis together to support the trade plan]"
+  }
+}

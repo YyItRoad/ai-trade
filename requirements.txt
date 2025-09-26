@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+openai
+cryptography
+mysql-connector-python
+
+apscheduler
+
+typer
+
+croniter

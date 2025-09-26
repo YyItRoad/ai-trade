@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资产管理</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header-bar">
+            <h1>资产管理</h1>
+            <a href="/">&laquo; 返回历史记录</a>
+        </div>
+
+        <div class="actions-container">
+            <div class="actions-left">
+                <label for="type-filter">筛选类型:</label>
+                <select id="type-filter">
+                    <option value="ALL">全部类型</option>
+                    <option value="SPOT">现货 (SPOT)</option>
+                    <option value="USD_M">U本位合约 (USD_M)</option>
+                    <option value="COIN_M">币本位合约 (COIN_M)</option>
+                </select>
+            </div>
+            <div class="actions-right">
+                <button id="add-asset-btn">添加新资产</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="assets-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>交易对 (Symbol)</th>
+                        <th>资产类型</th>
+                        <th>定时设置 (Cron)</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="assets-table-body">
+                    <!-- 资产数据将在此处加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 添加资产模态框 -->
+    <div id="add-asset-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>添加新资产</h2>
+            <form id="add-asset-form">
+                <div class="form-group">
+                    <label for="new-asset-symbol">交易对 (Symbol)</label>
+                    <input type="text" id="new-asset-symbol" placeholder="例如: BTCUSDT" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-asset-type">资产类型</label>
+                    <select id="new-asset-type" required>
+                        <option value="SPOT">现货 (SPOT)</option>
+                        <option value="USD_M">U本位合约 (USD_M)</option>
+                        <option value="COIN_M">币本位合约 (COIN_M)</option>
+                    </select>
+                </div>
+                <button type="submit">确认添加</button>
+            </form>
+            <p id="manage-status-message" class="status-message"></p>
+        </div>
+    </div>
+
+    <!-- 设置定时任务模态框 -->
+    <div id="set-schedule-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>设置定时任务</h2>
+            <form id="set-schedule-form">
+                <p>正在为 <strong id="schedule-asset-symbol"></strong> 设置定时任务。</p>
+                <div class="form-group">
+                    <label for="schedule-cron-string">Cron 表达式</label>
+                    <input type="text" id="schedule-cron-string" placeholder="例如: 0 */1 * * * (每小时执行一次)">
+                    <small>
+                        留空表示禁用定时任务。<br>
+                        格式: 分 时 日 月 周。 示例: <br>
+                        <code>0 */2 * * *</code> - 每2小时执行一次<br>
+                        <code>0 9,17 * * *</code> - 每天9点和17点执行<br>
+                        <code>* * * * *</code> - 每分钟执行一次 (测试用)
+                    </small>
+                </div>
+                <input type="hidden" id="schedule-asset-id">
+                <button type="submit">保存设置</button>
+            </form>
+            <p id="schedule-status-message" class="status-message"></p>
+        </div>
+    </div>
+
+    <script src="/static/manage.js"></script>
+</body>
+</html>
