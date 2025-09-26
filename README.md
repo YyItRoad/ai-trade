@@ -5,7 +5,7 @@
 ## 技术栈
 
 - **后端**: Python 3.8+, FastAPI, Uvicorn
-- **数据库**: MySQL
+- **数据库**: MySQL / SQLite
 - **任务调度**: APScheduler
 - **AI**: OpenAI API (或其他兼容的 LLM API)
 - **前端**: HTML, CSS, Vanilla JavaScript
@@ -29,56 +29,71 @@ source venv/bin/activate  # 在 Windows 上使用 `venv\Scripts\activate`
 pip install -r requirements.txt
 ```
 
-### 3. 设置 MySQL 数据库
+### 3. 数据库设置
 
-你需要一个正在运行的 MySQL 实例。
+本项目同时支持 MySQL 和 SQLite 数据库，并提供灵活的配置选项。
 
-- 创建一个新的数据库，例如 `ai_trade_db`。
-- 执行 `schema.sql` 文件来创建所需的表结构。你可以使用 MySQL 客户端工具（如 `mysql` 命令行, DBeaver, DataGrip 等）来导入和执行这个文件。
-
-```sql
--- schema.sql 的内容
-CREATE DATABASE IF NOT EXISTS ai_trade_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE ai_trade_db;
-
--- ... (assets, analysis_results 表的创建语句)
-```
+- **对于生产环境 (Docker)**: 推荐使用 MySQL。`docker-compose` 会自动为你创建一个 MySQL 容器并初始化数据库。
+- **对于本地开发**: 你可以使用外部的 MySQL 实例，或者 **无需任何配置**，系统会自动回退使用一个本地的 `default_trade_analysis.db` SQLite 文件，实现零配置快速启动。
 
 ## 配置
 
 项目通过根目录下的 `.env` 文件进行配置。请根据 `.env.example` 创建你自己的 `.env` 文件。
 
-1.  **复制示例文件**:
+```bash
+cp .env.example .env
+```
 
-    ```bash
-    cp .env.example .env
-    ```
+打开并编辑 `.env` 文件，填入你的配置信息。
 
-2.  **编辑 `.env` 文件**:
+### 数据库配置 (选择一种方式)
 
-    打开 `.env` 文件并填入你的配置信息。
+系统会按照以下优先级顺序来确定数据库连接：
 
-    ```dotenv
-    # .env
+#### 方式 A: 使用 `DATABASE_URL` (最高优先级)
 
-    # 数据库连接信息
-    DB_HOST=localhost
-    DB_PORT=3306
-    DB_USER=your_db_user
-    DB_PASSWORD=your_db_password
-    DB_NAME=ai_trade_db
+这是最灵活的方式。你可以提供一个完整的数据库连接字符串。
 
-    # K线数据 API (例如 Binance)
-    KLINE_API_KEY="your_binance_api_key"
-    KLINE_API_SECRET="your_binance_api_secret"
+- **示例 (MySQL):**
+  ```dotenv
+  DATABASE_URL="mysql://your_user:your_password@localhost:3306/ai_trade_db"
+  ```
 
-    # 大语言模型 API
-    OPENAI_API_KEY="your_openai_api_key"
-    OPENAI_API_BASE="https://api.openai.com/v1" # 如果使用代理或第三方服务，请修改此地址
+- **示例 (SQLite):**
+  ```dotenv
+  DATABASE_URL="sqlite:///./my_trade_analysis.db"
+  ```
 
-    # 应用登录密钥
-    APP_LOGIN_KEY="a_strong_secret_key_for_login"
-    ```
+#### 方式 B: 使用独立变量 (Docker Compose 推荐)
+
+如果你没有设置 `DATABASE_URL`，系统会尝试使用以下变量来构建一个 MySQL 连接字符串。这是 `docker-compose` 使用的默认方式。
+
+```dotenv
+DB_HOST=db
+DB_PORT=3306
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_NAME=ai_trade_db
+```
+
+#### 方式 C: 零配置回退 (本地开发默认)
+
+如果你既没有设置 `DATABASE_URL`，也没有提供完整的 `DB_*` 变量，系统会自动创建一个名为 `default_trade_analysis.db` 的 SQLite 数据库文件在项目根目录，并使用它。这允许你在本地环境中无需任何数据库配置即可快速启动项目。
+
+### 其他配置
+
+```dotenv
+# K线数据 API (例如 Binance)
+KLINE_API_KEY="your_binance_api_key"
+KLINE_API_SECRET="your_binance_api_secret"
+
+# 大语言模型 API
+OPENAI_API_KEY="your_openai_api_key"
+OPENAI_API_BASE="https://api.openai.com/v1" # 如果使用代理或第三方服务，请修改此地址
+
+# 应用登录密钥
+APP_LOGIN_KEY="a_strong_secret_key_for_login"
+```
 
 ## 运行项目
 
@@ -110,13 +125,11 @@ USE ai_trade_db;
 
 ### 方式二：本地直接运行 (用于开发)
 
-1.  **启动你自己的 MySQL 实例** 并确保数据库和表已根据 `schema.sql` 创建。
+1.  **配置数据库 (可选)**:
+    -   如果你想连接到一个外部的 MySQL 数据库，请在 `.env` 文件中配置 `DATABASE_URL` 或 `DB_*` 变量。
+    -   如果你想使用默认的 SQLite 数据库，**无需任何配置**。
 
-2.  **配置 `.env` 文件**:
-    -   确保 `DB_HOST` 设置为 `localhost` 或你的 MySQL 服务器地址。
-    -   填写正确的数据库用户名和密码。
-
-3.  **启动后端服务**:
+2.  **启动后端服务**:
     在激活了 Python 虚拟环境的终端中，运行：
     ```bash
     python manage.py run

@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePagination(result.page, result.total_pages);
         } catch (error) {
             console.error("获取分析数据失败:", error);
-            tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color: red;">数据加载失败。</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color: red;">数据加载失败。</td></tr>`;
         }
     }
 
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentRecords.clear(); // 在重新填充之前清除 map
 
         if (!records || records.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;">无可用数据。</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;">无可用数据。</td></tr>`;
             return;
         }
 
@@ -110,9 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const conclusionText = conclusionMap[record.conclusion] || record.conclusion || '无';
             const directionText = directionMap[record.direction] || record.direction || '无';
 
+            const promptVersionText = record.prompt_name ? `${record.prompt_name} (V${record.prompt_version})` : 'N/A';
+
             row.innerHTML = `
                 <td>${new Date(record.timestamp).toLocaleString()}</td>
                 <td>${record.asset}</td>
+                <td>${promptVersionText}</td>
                 <td>${conclusionText}</td>
                 <td class="${directionClass}">${directionText}</td>
                 <td>${formatConfidence(record.confidence)}</td>

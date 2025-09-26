@@ -1,35 +1,46 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
+from pydantic import model_validator
+from typing import Optional
 
 class Settings(BaseSettings):
-    # OpenAI API Settings
-    OPENAI_API_KEY: str | None = None # Allow key to be optional to enable server startup
+    # --- 数据库设置 ---
+    # 优先使用 DATABASE_URL。如果未提供，则会根据下面的分项自动构建。
+    DATABASE_URL: Optional[str] = None
+    DB_HOST: Optional[str] = None
+    DB_PORT: Optional[int] = 3306
+    DB_USER: Optional[str] = None
+    DB_PASSWORD: Optional[str] = None
+    DB_NAME: Optional[str] = None
+
+    # --- OpenAI API 设置 ---
+    OPENAI_API_KEY: Optional[str] = None
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
-    OPENAI_MODEL: str = "gpt-3.5-turbo"
-    OPENAI_MODEL_CHEAT_CHECK: str = "qwen3-235b-a22b"
-    KLINE_API_SECRET_KEY: str | None = None # Renamed from API_SECRET_KEY
-    APP_LOGIN_SECRET_KEY: str | None = None # New key for UI login
+    OPENAI_MODEL: str = "gpt-4-turbo"
+    
+    # --- K-line API 设置 ---
+    KLINE_API_SECRET_KEY: Optional[str] = None
+    
+    # --- 应用安全设置 ---
+    APP_LOGIN_SECRET_KEY: Optional[str] = None
 
-    # JWT Settings for OAuth2
-    SECRET_KEY: str = "a_default_secret_key"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 600
+    # model_config 指向 .env 文件
+    model_config = SettingsConfigDict(env_file=".env", extra='ignore')
 
-    # Database URL
-    DATABASE_URL: str = "sqlite:///./veloera.db"
+    @model_validator(mode='after')
+    def assemble_db_connection(self) -> 'Settings':
+        if self.DATABASE_URL is None:
+            if all([self.DB_HOST, self.DB_USER, self.DB_PASSWORD, self.DB_NAME]):
+                self.DATABASE_URL = (
+                    f"mysql://{self.DB_USER}:{self.DB_PASSWORD}"
+                    f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+                )
+            else:
+                # 如果两种配置都不完整，则回退到默认的 SQLite 数据库
+                default_db_path = "default_trade_analysis.db"
+                self.DATABASE_URL = f"sqlite:///{default_db_path}"
+                # 使用 print 因为此时 logger 可能还未完全配置好
+                print(f"警告: 未找到完整的数据库配置。将回退使用默认的 SQLite 数据库: {default_db_path}")
+        return self
 
-    # Linux.do OAuth Settings
-    LINUXDO_CLIENT_ID: str | None = None
-    LINUXDO_CLIENT_SECRET: str | None = None
-    LINUXDO_SCOPE: str = "read"
-
-    # Server Settings
-    HOST: str = "127.0.0.1"
-    PORT: int = 8000
-    UVICORN_RELOAD: bool = True
-
-    # Point to the .env file in the 'backend' directory relative to the project root
-    model_config = SettingsConfigDict(env_file=".env")
-
-# Create a single instance of the settings
+# 创建 settings 的单例
 settings = Settings()

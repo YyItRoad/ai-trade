@@ -2,6 +2,7 @@ import logging
 import json
 import os
 from datetime import datetime
+from typing import Tuple, Optional, Dict, Any
 
 # 导入项目内的模块
 from core.market_data import fetch_all_kline_data_concurrently
@@ -11,6 +12,12 @@ from core.database import get_db_connection
 # 全局 logger，用于服务级别的信息
 logger = logging.getLogger(__name__)
 
+ASSET_TYPE_MAP = {
+    0: "现货 (Spot)",
+    1: "U本位合约 (USD-M Futures)",
+    2: "币本位合约 (COIN-M Futures)"
+}
+
 def _setup_task_logger(symbol: str):
     """为单个分析任务设置专用的文件日志记录器。"""
     log_dir = "logs/tasks"
@@ -19,38 +26,73 @@ def _setup_task_logger(symbol: str):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = os.path.join(log_dir, f"{symbol}_{timestamp}.log")
     
-    # 创建一个唯一的 logger 名称以避免冲突
     task_logger_name = f"task.{symbol}.{timestamp}"
     task_logger = logging.getLogger(task_logger_name)
     task_logger.setLevel(logging.INFO)
-    
-    # 防止将日志传播到根 logger
     task_logger.propagate = False
     
-    # 创建文件处理器
     handler = logging.FileHandler(log_file, encoding='utf-8')
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     
-    # 添加处理器
     task_logger.addHandler(handler)
     
     return task_logger, handler
 
-def _load_prompt_parts(task_logger) -> tuple[str, str]:
-    """从文件加载提示词的两个部分：系统指令和JSON结构。"""
+def _get_active_prompt_from_db(task_logger) -> Tuple[Optional[int], Optional[str], Optional[str]]:
+    """从数据库获取当前激活的分析提示词。"""
+    conn = None
     try:
-        with open('prompts/system_prompt.txt', 'r', encoding='utf-8') as f:
-            system_prompt = f.read()
-        with open('prompts/json_structure.txt', 'r', encoding='utf-8') as f:
-            json_structure = f.read()
-        return system_prompt, json_structure
-    except FileNotFoundError as e:
-        task_logger.error(f"提示词文件未找到: {e.filename}")
-        return "", ""
+        conn = get_db_connection()
+        if not conn:
+            task_logger.error("未能获取数据库连接以加载提示词。")
+            return None, None, None
+        
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, content FROM prompts WHERE is_active = TRUE LIMIT 1")
+        prompt_row = cursor.fetchone()
+        
+        if not prompt_row:
+            task_logger.error("数据库中未找到任何激活的提示词。")
+            return None, None, None
+        
+        # 将元组转换为字典
+        if cursor.description is None:
+            task_logger.error("数据库游标未返回列信息。")
+            return None, None, None
+        column_names = [desc[0] for desc in cursor.description]
+        prompt_dict = dict(zip(column_names, prompt_row))
 
-def _save_to_db(data: dict, task_logger):
-    """将分析结果保存到数据库"""
+        # 显式、安全地进行类型转换
+        prompt_id_val = prompt_dict.get('id')
+        content_val = prompt_dict.get('content')
+
+        if prompt_id_val is None or content_val is None:
+            task_logger.error("从数据库获取的提示词数据不完整 (id 或 content 为空)。")
+            return None, None, None
+
+        prompt_id = int(prompt_id_val)  # type: ignore
+        content = str(content_val)
+            
+        # 假设提示词内容包含系统指令和JSON结构，以特定分隔符分开
+        parts = content.split('---JSON---', 1)
+        if len(parts) == 2:
+            system_prompt, json_structure = parts
+        else:
+            system_prompt = content
+            json_structure = ""
+
+        return prompt_id, system_prompt.strip(), json_structure.strip()
+
+    except Exception as e:
+        task_logger.error(f"从数据库加载提示词时出错: {e}", exc_info=True)
+        return None, None, None
+    finally:
+        if conn:
+            conn.close()
+
+def _save_to_db(data: Dict[str, Any], prompt_id: int, task_logger):
+    """将分析结果和使用的 prompt_id 保存到数据库"""
     conn = None
     try:
         conn = get_db_connection()
@@ -60,20 +102,21 @@ def _save_to_db(data: dict, task_logger):
 
         cursor = conn.cursor()
         
-        # 从解析后的JSON中提取数据
+        placeholder = "?" if conn.__class__.__module__ == "sqlite3" else "%s"
+        
         trade_plan = data.get('tradePlan', {})
         levels = data.get('levels', {})
         take_profit = levels.get('takeProfit', {})
         analysis = data.get('analysis', {})
         wave_analysis = {item['timeframe']: item['status'] for item in analysis.get('waveAnalysis', [])}
 
-        sql = """
+        sql = f"""
         INSERT INTO trade_analysis (
             asset, timestamp, conclusion, direction, confidence,
             risk_reward_ratio, entry_point, stop_loss, take_profit_1,
             take_profit_2, analysis_summary, wave_analysis_4h,
-            wave_analysis_1h, wave_analysis_15m, rationale, raw_response
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            wave_analysis_1h, wave_analysis_15m, rationale, raw_response, prompt_id
+        ) VALUES ({", ".join([placeholder]*17)})
         """
         
         params = (
@@ -92,7 +135,8 @@ def _save_to_db(data: dict, task_logger):
             wave_analysis.get('1H'),
             wave_analysis.get('15M'),
             analysis.get('rationale'),
-            json.dumps(data) # 存储原始JSON
+            json.dumps(data),
+            prompt_id
         )
         
         cursor.execute(sql, params)
@@ -115,41 +159,47 @@ async def run_analysis_task(symbol: str, asset_type: int):
     try:
         task_logger.info(f"正在为 {symbol} (类型: {asset_type}) 启动分析任务...")
         
-        # 1. 获取K线数据
+        # 1. 从数据库加载激活的提示词
+        prompt_id, system_prompt, json_structure = _get_active_prompt_from_db(task_logger)
+        if not prompt_id or not system_prompt:
+            task_logger.error("未能从数据库加载有效的激活提示词，任务中止。")
+            return
+
+        # 2. 获取K线数据
         kline_data = fetch_all_kline_data_concurrently(symbol=symbol, asset_type=asset_type)
         if not any(kline_data.values()):
             task_logger.warning(f"未能为 {symbol} 获取到K线数据。正在中止任务。")
             return
 
-        # 2. 构建Prompt并调用AI
-        system_prompt, json_structure = _load_prompt_parts(task_logger)
-        if not system_prompt or not json_structure:
-            task_logger.error("因缺少提示词部分而中止任务。")
-            return
-
-        # 1. 格式化系统指令
-        formatted_system_prompt = system_prompt.format(symbol=symbol)
+        # 3. 构建Prompt并调用AI
+        asset_type_str = ASSET_TYPE_MAP.get(asset_type, "未知类型")
         
-        # 2. 准备K线数据
+        # a. 构建完整的系统提示词，包含指令、变量和JSON结构
+        full_system_prompt = (
+            f"{system_prompt.format(symbol=symbol, asset_type=asset_type_str)}\n\n"
+            f"请严格按照以下JSON结构返回分析结果:\n"
+            f"{json_structure}"
+        )
+        
+        # b. 构建用户提示词，现在只包含K线数据
         kline_data_str = json.dumps(kline_data, indent=2)
-        
-        # 3. 拼接成最终的完整提示词
-        full_prompt = (
-            f"{formatted_system_prompt}\n"
-            f"{json_structure}\n\n"
+        user_prompt = (
             f"以下是最新的K线数据:\n"
             f"```json\n{kline_data_str}\n```"
         )
         
         task_logger.info("正在向AI模型发送请求...")
-        ai_response_str = await get_ai_response(prompt=full_prompt, force_json=True)
+        ai_response_str = await get_ai_response(
+            system_prompt=full_system_prompt,
+            user_prompt=user_prompt
+        )
         task_logger.info(f"原始AI响应:\n---\n{ai_response_str}\n---")
 
         if not ai_response_str or "错误：" in ai_response_str:
             task_logger.error(f"未能从AI获取有效响应: {ai_response_str}")
             return
 
-        # 3. 解析并存储
+        # 4. 解析并存储
         json_part = _extract_json_from_response(ai_response_str)
         if not json_part:
             task_logger.error(f"无法从AI响应中提取JSON: {ai_response_str}")
@@ -157,18 +207,15 @@ async def run_analysis_task(symbol: str, asset_type: int):
             
         try:
             analysis_result = json.loads(json_part)
-            _save_to_db(analysis_result, task_logger)
+            _save_to_db(analysis_result, prompt_id, task_logger)
             task_logger.info(f"为 {symbol} 的分析任务已成功完成。")
         except json.JSONDecodeError:
             task_logger.error(f"从AI响应解码JSON失败: {json_part}")
     finally:
-        # 确保关闭并移除处理器以释放文件句柄
         handler.close()
         task_logger.removeHandler(handler)
 
 if __name__ == '__main__':
-    # 用于测试的异步执行入口
     import asyncio
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    # 示例: asyncio.run(run_analysis_task(symbol="BTCUSDT", asset_type="USD_M"))
     pass

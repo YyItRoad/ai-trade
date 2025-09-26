@@ -53,16 +53,36 @@ def get_analysis_history(
         cursor = conn.cursor(dictionary=True) # type: ignore
 
         # --- 动态构建查询 ---
-        count_query = "SELECT COUNT(*) as total FROM trade_analysis"
-        data_query = "SELECT * FROM trade_analysis"
+        # --- 动态构建查询 ---
+        # 使用 LEFT JOIN 关联 prompts 表
+        count_query = "SELECT COUNT(*) as total FROM trade_analysis ta"
+        data_query = """
+            SELECT
+                ta.id, ta.asset, ta.timestamp, ta.conclusion, ta.direction,
+                ta.confidence, ta.risk_reward_ratio, ta.entry_point, ta.stop_loss,
+                ta.take_profit_1, ta.take_profit_2, ta.analysis_summary,
+                ta.wave_analysis_4h, ta.wave_analysis_1h, ta.wave_analysis_15m,
+                ta.rationale, ta.raw_response, ta.prompt_id,
+                p.name as prompt_name,
+                p.version as prompt_version
+            FROM trade_analysis ta
+            LEFT JOIN prompts p ON ta.prompt_id = p.id
+        """
         
         count_params = []
         data_params = []
+        
+        # 处理筛选条件
+        where_clauses = []
         if asset:
-            count_query += " WHERE asset = %s"
-            data_query += " WHERE asset = %s"
+            where_clauses.append("ta.asset = %s")
             count_params.append(asset)
             data_params.append(asset)
+
+        if where_clauses:
+            where_str = " WHERE " + " AND ".join(where_clauses)
+            count_query += where_str
+            data_query += where_str
 
         # 计算总记录数
         cursor.execute(count_query, tuple(count_params))

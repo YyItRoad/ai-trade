@@ -10,3 +10,4 @@ apscheduler
 typer
 
 croniter
+colorlog

@@ -1,24 +1,34 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from api.routes import analysis, assets, auth
+from api.routes import analysis, assets, auth, prompts
 from core.scheduler import scheduler, start_scheduler
+from core.database import init_db
+from core.logger import setup_logging
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    应用生命周期管理，在应用启动时启动调度器。
+    应用生命周期管理：
+    1. 应用启动时，初始化数据库表结构。
+    2. 应用启动时，启动后台任务调度器。
     """
     # 启动
-    print("应用启动，开始调度任务...")
+    setup_logging()
+    logging.info("应用启动，正在初始化数据库...")
+    init_db()
+    logging.info("数据库初始化完成。")
+    
+    logging.info("应用启动，开始调度任务...")
     start_scheduler()
     yield
     # 关闭
-    print("应用关闭，停止调度任务...")
+    logging.info("应用关闭，停止调度任务...")
     scheduler.shutdown()
 
 app = FastAPI(
@@ -41,6 +51,7 @@ app.add_middleware(
 app.include_router(analysis.router, prefix="/api", tags=["分析"])
 app.include_router(assets.router, prefix="/api", tags=["资产"])
 app.include_router(auth.router, prefix="/api", tags=["认证"])
+app.include_router(prompts.router, prefix="/api", tags=["提示词"])
 
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -61,3 +72,8 @@ async def read_root():
 async def manage_assets_page():
     """提供资产管理页面"""
     return "static/manage.html"
+
+@app.get("/prompts.html", response_class=FileResponse, include_in_schema=False)
+async def prompts_page():
+    """提供提示词管理页面"""
+    return "static/prompts.html"

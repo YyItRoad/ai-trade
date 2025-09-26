@@ -3,12 +3,12 @@ body {
     background-color: #f4f6f8;
     color: #333;
     margin: 0;
-    padding: 20px;
+    padding: 0; /* Let the container handle padding */
 }
 
 .container {
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 20px auto; /* Add top/bottom margin */
     background-color: #fff;
     padding: 20px;
     border-radius: 8px;
@@ -194,6 +194,12 @@ pre {
     margin-bottom: 10px;
 }
 
+.status-message:empty {
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+}
+
 /* Management Page Specific Styles */
 .header-bar {
     display: flex;
@@ -232,7 +238,8 @@ pre {
 }
 
 .modal .form-group input,
-.modal .form-group select {
+.modal .form-group select,
+.modal .form-group textarea {
     width: 100%;
     padding: 8px;
     border: 1px solid #ccc;
@@ -303,4 +310,136 @@ pre {
 /* Add margin between buttons in the same cell */
 #assets-table td button + button {
     margin-left: 8px;
+}
+
+/* Prompts Page Specific Styles */
+#prompts-table .action-btn {
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 0.9em;
+}
+
+#prompts-table .view-prompt-btn {
+    background-color: #3498db; /* Blue */
+}
+
+#prompts-table .view-prompt-btn:hover {
+    background-color: #2980b9;
+}
+
+#prompts-table .delete-prompt-btn {
+    background-color: #e74c3c; /* Red */
+}
+
+#prompts-table .delete-prompt-btn:hover {
+    background-color: #c0392b;
+}
+
+#prompts-table .activate-prompt-btn {
+    background-color: #27ae60; /* Green */
+}
+
+#prompts-table .activate-prompt-btn:hover {
+    background-color: #229954;
+}
+
+#prompts-table .activate-prompt-btn:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Add margin between buttons in the same cell */
+#prompts-table td .action-btn + .action-btn {
+    margin-left: 8px;
+}
+
+#prompts-table .col-actions {
+    width: 220px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+/* Global Navigation Bar Styles */
+.main-nav {
+    background-color: #34495e;
+    padding: 0 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* margin-bottom is now handled by container's margin-top */
+}
+
+.main-nav .nav-brand {
+    color: #ecf0f1;
+    font-size: 1.5em;
+    font-weight: bold;
+    text-decoration: none;
+    padding: 15px 0;
+}
+
+.main-nav .nav-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+
+.main-nav .nav-links li {
+    margin-left: 20px;
+}
+
+.main-nav .nav-links a {
+    color: #ecf0f1;
+    text-decoration: none;
+    font-size: 1em;
+    padding: 20px 10px;
+    display: block;
+    transition: background-color 0.3s;
+}
+
+.main-nav .nav-links a:hover,
+.main-nav .nav-links a.active {
+    background-color: #4a627a;
+}
+
+/* Button in toolbar */
+.toolbar button {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 1em;
+}
+
+.toolbar button:hover {
+    background-color: #229954;
+}
+
+/* Primary button inside modals */
+.modal .button-primary,
+.modal button[type="submit"] {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 1em;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.modal .button-primary:hover,
+.modal button[type="submit"]:hover {
+    background-color: #229954;
 }

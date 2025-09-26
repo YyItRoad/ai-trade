@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示词管理 - AI 交易分析</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="/" class="nav-brand">AI Trade Analysis</a>
+        <ul class="nav-links">
+            <li><a href="/">分析历史</a></li>
+            <li><a href="/manage">资产管理</a></li>
+            <li><a href="/prompts.html" class="active">提示词管理</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <h1>提示词管理</h1>
+        <main>
+            <div class="actions-container">
+                <div class="actions-left">
+                    <!-- 左侧内容占位 -->
+                </div>
+                <div class="toolbar">
+                    <button id="create-prompt-btn">新增提示词</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="prompts-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>名称</th>
+                            <th>版本</th>
+                            <th>状态</th>
+                            <th>内容预览</th>
+                            <th>创建时间</th>
+                            <th class="col-actions">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prompts-table-body">
+                        <!-- 提示词将在此处加载 -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- 创建/编辑模态框 -->
+    <div id="prompt-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2 id="modal-title">创建新提示词</h2>
+            <form id="prompt-form">
+                <input type="hidden" id="prompt-id-input">
+                <div class="form-group">
+                    <label for="prompt-name">提示词名称</label>
+                    <input type="text" id="prompt-name" placeholder="例如: default_strategy" required>
+                    <small>具有相同名称的提示词将被归为一组，并进行版本管理。</small>
+                </div>
+                <div class="form-group">
+                    <label for="prompt-content">提示词内容</label>
+                    <textarea id="prompt-content" rows="20" placeholder="请在此处输入您的AI提示词..." required></textarea>
+                    <small>每次保存都将作为新版本。版本号由系统自动递增。</small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 查看模态框 -->
+    <div id="view-prompt-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2 id="view-modal-title">查看提示词</h2>
+            <pre id="view-prompt-content"></pre>
+            <div class="form-actions">
+                <button id="copy-from-view-btn" class="button-primary">复制为新版本</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/prompts.js"></script>
+</body>
+</html>

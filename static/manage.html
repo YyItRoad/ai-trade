@@ -7,12 +7,16 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <nav class="main-nav">
+        <a href="/" class="nav-brand">AI Trade Analysis</a>
+        <ul class="nav-links">
+            <li><a href="/">分析历史</a></li>
+            <li><a href="/manage" class="active">资产管理</a></li>
+            <li><a href="/prompts.html">提示词管理</a></li>
+        </ul>
+    </nav>
     <div class="container">
-        <div class="header-bar">
-            <h1>资产管理</h1>
-            <a href="/">&laquo; 返回历史记录</a>
-        </div>
-
+        <h1>资产管理</h1>
         <div class="actions-container">
             <div class="actions-left">
                 <label for="type-filter">筛选类型:</label>
@@ -23,7 +27,7 @@
                     <option value="COIN_M">币本位合约 (COIN_M)</option>
                 </select>
             </div>
-            <div class="actions-right">
+            <div class="toolbar">
                 <button id="add-asset-btn">添加新资产</button>
             </div>
         </div>

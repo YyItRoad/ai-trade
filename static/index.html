@@ -7,6 +7,14 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <nav class="main-nav">
+        <a href="/" class="nav-brand">AI Trade Analysis</a>
+        <ul class="nav-links">
+            <li><a href="/" class="active">分析历史</a></li>
+            <li><a href="/manage">资产管理</a></li>
+            <li><a href="/prompts.html">提示词管理</a></li>
+        </ul>
+    </nav>
     <div class="container">
         <h1>AI 交易分析历史</h1>
 
@@ -15,10 +23,9 @@
                 <select id="asset-selector">
                     <option value="">所有资产</option>
                 </select>
-                <button id="query-btn">查询</button>
             </div>
-            <div class="actions-right">
-                 <a href="/manage" class="manage-link">管理资产</a>
+            <div class="toolbar">
+                <button id="query-btn">查询</button>
             </div>
         </div>
         <p id="status-message" class="status-message"></p>
@@ -29,6 +36,7 @@
                     <tr>
                         <th>时间戳</th>
                         <th>资产</th>
+                        <th>提示词版本</th>
                         <th>结论</th>
                         <th>方向</th>
                         <th>置信度</th>

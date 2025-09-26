@@ -71,8 +71,8 @@ if __name__ == "__main__":
     asset_type = args.type
     all_kline_data = fetch_all_kline_data_concurrently(symbol, asset_type)
     
-    # 确保 'klins' 目录存在
-    output_dir = "klins"
+    # 确保 'klines' 目录存在
+    output_dir = "klines"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         
@@ -86,8 +86,8 @@ if __name__ == "__main__":
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(all_kline_data, f, indent=4)
-            print(f"\n成功将K线数据写入到 {filepath}")
+            logging.info(f"成功将K线数据写入到 {filepath}")
         except IOError as e:
-            print(f"\n写入文件 {filepath} 时出错: {e}")
+            logging.error(f"写入文件 {filepath} 时出错: {e}")
     else:
-        print("\n未获取到数据，跳过文件写入。")
+        logging.warning("未获取到数据，跳过文件写入。")

@@ -40,16 +40,17 @@ def _extract_json_from_response(response_str: str) -> str | None:
 
 # --- Core Function ---
 async def get_ai_response(
-    prompt: str,
+    system_prompt: str,
+    user_prompt: str,
     history: list[dict] | None = None,
-    model=settings.OPENAI_MODEL,
-    force_json=True,
+    model=settings.OPENAI_MODEL
 ) -> str:
     """
     从 OpenAI API 获取响应。
 
     Args:
-        prompt: 用户的提示。
+        system_prompt: 系统级别的指令。
+        user_prompt: 用户的具体提示或数据。
         history: 对话的先前消息列表。
 
     Returns:
@@ -58,10 +59,10 @@ async def get_ai_response(
     if not client:
         return "错误：OpenAI客户端未初始化。请在 backend/.env 文件中正确设置您的 OPENAI_API_KEY。"
 
-    messages = []
+    messages = [{"role": "system", "content": system_prompt}]
     if history:
         messages.extend(history)
-    messages.append({"role": "user", "content": prompt})
+    messages.append({"role": "user", "content": user_prompt})
 
     total_tokens = sum(len(m["content"]) for m in messages)
     logger.debug(f"发送到OpenAI的消息总令牌数: {total_tokens}")
@@ -105,21 +106,7 @@ async def get_ai_response(
             if "<think>" in ret and "</think>" in ret:
                 ret = ret[ret.rfind("</think>") + 8 :].strip()
 
-            if force_json:
-                try:
-                    json_str = _extract_json_from_response(ret)
-                    if json_str:
-                        json_part = json.loads(json_str)
-                        if json_part:
-                            return ret
-                        else:
-                            raise ValueError("JSON解析结果为空")
-                    else:
-                        raise ValueError("未找到有效的JSON部分")
-                except Exception as e:
-                    raise ValueError(f"解析AI响应时出错: {e}")
-            else:
-                return ret
+            return ret
 
         except APIError as e:
             logger.error(f"OpenAI API 错误 (尝试 {attempt + 1}/{max_retries}): {e}")
