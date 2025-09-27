@@ -15,7 +15,7 @@ def setup_logging():
     root_logger = logging.getLogger()
     # 只有在没有配置 handlers 的情况下才进行配置，防止重复
     if not root_logger.handlers:
-        root_logger.setLevel(logging.INFO)
+        root_logger.setLevel(logging.INFO) # 设置根日志级别为 INFO，适用于生产环境
 
         # 1. 控制台 Handler (带颜色)
         color_formatter = colorlog.ColoredFormatter(
@@ -48,3 +48,6 @@ def setup_logging():
     logging.getLogger("uvicorn").handlers = root_logger.handlers
     logging.getLogger("uvicorn.access").handlers = root_logger.handlers
     logging.getLogger("uvicorn.error").handlers = root_logger.handlers
+    
+    # 调度器问题已解决，不再需要为 apscheduler 设置 DEBUG 级别
+    # logging.getLogger("apscheduler").setLevel(logging.DEBUG)

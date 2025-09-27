@@ -50,9 +50,10 @@ def get_analysis_history(
         if not conn:
             raise HTTPException(status_code=500, detail="数据库连接失败。")
 
-        cursor = conn.cursor(dictionary=True) # type: ignore
+        # 移除 dictionary=True 以兼容 sqlite3
+        # cursor = conn.cursor(dictionary=True) # type: ignore
+        cursor = conn.cursor()
 
-        # --- 动态构建查询 ---
         # --- 动态构建查询 ---
         # 使用 LEFT JOIN 关联 prompts 表
         count_query = "SELECT COUNT(*) as total FROM trade_analysis ta"
@@ -87,24 +88,41 @@ def get_analysis_history(
         # 计算总记录数
         cursor.execute(count_query, tuple(count_params))
         count_result = cursor.fetchone()
-        total_records = int(count_result['total']) if count_result else 0 # type: ignore
+        # total_records = int(count_result['total']) if count_result else 0 # type: ignore
+        total_records = int(count_result[0]) if count_result else 0 # type: ignore
         total_pages = math.ceil(total_records / size) if total_records > 0 else 0
 
         results = []
         if total_records > 0:
             # 添加排序和分页
-            data_query += " ORDER BY timestamp DESC LIMIT %s OFFSET %s"
+            # 兼容 MySQL 和 SQLite 的占位符
+            placeholder = "?" if conn.__class__.__module__ == "sqlite3" else "%s"
+            
+            # 动态构建 LIMIT 和 OFFSET
+            if conn.__class__.__module__ == "sqlite3":
+                 data_query += f" ORDER BY timestamp DESC LIMIT {placeholder} OFFSET {placeholder}"
+            else: # mysql
+                 data_query += f" ORDER BY timestamp DESC LIMIT {placeholder} OFFSET {placeholder}"
+
             offset = (page - 1) * size
             data_params.extend([size, offset])
             
             cursor.execute(data_query, tuple(data_params))
-            results = cursor.fetchall()
             
+            # 手动将元组转换为字典
+            if not cursor.description:
+                logger.warning("分析历史查询未返回任何列信息。")
+                # 在这种情况下，results 保持为空列表，是正确的行为
+            else:
+                column_names = [desc[0] for desc in cursor.description]
+                raw_results = cursor.fetchall()
+                results = [dict(zip(column_names, row)) for row in raw_results]
+
             # 序列化 datetime
             for row in results:
-                for key, value in row.items(): # type: ignore
+                for key, value in row.items():
                     if isinstance(value, datetime.datetime):
-                        row[key] = value.isoformat() # type: ignore
+                        row[key] = value.isoformat()
 
         return {
             "page": page,
