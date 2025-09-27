@@ -11,3 +11,5 @@ typer
 
 croniter
 colorlog
+
+requests

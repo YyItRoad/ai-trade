@@ -1,0 +1,29 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: ai_trade_db
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    environment:
+      # 如果 .env 文件中没有提供 DATABASE_URL，则使用此默认值连接到上面的 db 服务
+      - DATABASE_URL=mysql+mysqlconnector://${DB_USER}:${DB_PASSWORD}@db:3306/${DB_NAME}
+    depends_on:
+      db:
+        condition: service_healthy

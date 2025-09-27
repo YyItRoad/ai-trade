@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 
 from api.routes import analysis, assets, auth, prompts
 from core.scheduler import scheduler, start_scheduler
-from core.database import init_db
+from core.database import init_db, init_connection_pool, close_connection_pool
 from core.logger import setup_logging
 
 @asynccontextmanager
@@ -20,9 +20,10 @@ async def lifespan(app: FastAPI):
     """
     # 启动
     setup_logging()
-    logging.info("应用启动，正在初始化数据库...")
+    logging.info("应用启动，正在初始化数据库连接池...")
+    init_connection_pool()
+    logging.info("应用启动，正在检查/初始化数据库 schema...")
     init_db()
-    logging.info("数据库初始化完成。")
     
     logging.info("应用启动，开始调度任务...")
     start_scheduler()
@@ -30,6 +31,8 @@ async def lifespan(app: FastAPI):
     # 关闭
     logging.info("应用关闭，停止调度任务...")
     scheduler.shutdown()
+    logging.info("应用关闭，正在关闭数据库连接池...")
+    close_connection_pool()
 
 app = FastAPI(
     title="AI 交易分析",

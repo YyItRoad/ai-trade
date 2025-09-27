@@ -27,37 +27,22 @@ def _schedule_all_assets():
             logger.error("无法安排任务，数据库连接失败。")
             return
 
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id, symbol, `type`, schedule_cron FROM assets WHERE schedule_cron IS NOT NULL")
-        asset_rows = cursor.fetchall()
+        assets = cursor.fetchall()
         
-        if not asset_rows:
+        if not assets:
             logger.warning("在数据库中未找到带有定时任务的资产。")
             return
 
-        # 手动将元组转换为字典以兼容 sqlite3 和 mysql
-        if not cursor.description:
-            logger.error("无法从数据库游标获取列信息。")
-            return
-        column_names = [desc[0] for desc in cursor.description]
-        assets = [dict(zip(column_names, row)) for row in asset_rows]
-
         for asset in assets:
             try:
-                symbol = str(asset.get('symbol'))
-                raw_asset_type = asset.get('type')
-                cron_string = str(asset.get('schedule_cron'))
+                symbol = str(asset['symbol']) # type: ignore
+                asset_type_int = int(asset['type']) # type: ignore
+                cron_string = str(asset['schedule_cron']) # type: ignore
 
                 if not (symbol and cron_string):
                     continue
-
-                asset_type_int: int
-                if isinstance(raw_asset_type, int):
-                    asset_type_int = raw_asset_type
-                else:
-                    type_mapping = {"SPOT": 0, "USD_M": 1, "COIN_M": 2}
-                    type_str = raw_asset_type.decode('utf-8') if isinstance(raw_asset_type, bytes) else str(raw_asset_type)
-                    asset_type_int = type_mapping.get(type_str.upper(), 0)
 
                 # --- 直接在此处添加任务，不再调用 update_asset_schedule ---
                 job_id = f"analysis_{symbol}_{asset_type_int}"

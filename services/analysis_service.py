@@ -20,7 +20,10 @@ ASSET_TYPE_MAP = {
 
 def _setup_task_logger(symbol: str):
     """为单个分析任务设置专用的文件日志记录器。"""
-    log_dir = "logs/tasks"
+    # 获取当前日期并格式化为 YYYY-MM-DD
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    # 构建新的日志目录路径
+    log_dir = f"logs/tasks-{date_str}"
     os.makedirs(log_dir, exist_ok=True)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -48,31 +51,16 @@ def _get_active_prompt_from_db(task_logger) -> Tuple[Optional[int], Optional[str
             task_logger.error("未能获取数据库连接以加载提示词。")
             return None, None, None
         
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id, content FROM prompts WHERE is_active = TRUE LIMIT 1")
         prompt_row = cursor.fetchone()
         
         if not prompt_row:
             task_logger.error("数据库中未找到任何激活的提示词。")
             return None, None, None
-        
-        # 将元组转换为字典
-        if cursor.description is None:
-            task_logger.error("数据库游标未返回列信息。")
-            return None, None, None
-        column_names = [desc[0] for desc in cursor.description]
-        prompt_dict = dict(zip(column_names, prompt_row))
 
-        # 显式、安全地进行类型转换
-        prompt_id_val = prompt_dict.get('id')
-        content_val = prompt_dict.get('content')
-
-        if prompt_id_val is None or content_val is None:
-            task_logger.error("从数据库获取的提示词数据不完整 (id 或 content 为空)。")
-            return None, None, None
-
-        prompt_id = int(prompt_id_val)  # type: ignore
-        content = str(content_val)
+        prompt_id = int(prompt_row['id']) # type: ignore
+        content = str(prompt_row['content']) # type: ignore
             
         # 假设提示词内容包含系统指令和JSON结构，以特定分隔符分开
         parts = content.split('---JSON---', 1)
@@ -102,21 +90,19 @@ def _save_to_db(data: Dict[str, Any], prompt_id: int, task_logger):
 
         cursor = conn.cursor()
         
-        placeholder = "?" if conn.__class__.__module__ == "sqlite3" else "%s"
-        
         trade_plan = data.get('tradePlan', {})
         levels = data.get('levels', {})
         take_profit = levels.get('takeProfit', {})
         analysis = data.get('analysis', {})
         wave_analysis = {item['timeframe']: item['status'] for item in analysis.get('waveAnalysis', [])}
 
-        sql = f"""
+        sql = """
         INSERT INTO trade_analysis (
             asset, timestamp, conclusion, direction, confidence,
             risk_reward_ratio, entry_point, stop_loss, take_profit_1,
             take_profit_2, analysis_summary, wave_analysis_4h,
             wave_analysis_1h, wave_analysis_15m, rationale, raw_response, prompt_id
-        ) VALUES ({", ".join([placeholder]*17)})
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         params = (

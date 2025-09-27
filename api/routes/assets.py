@@ -53,33 +53,8 @@ def get_all_assets():
         
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id, symbol, `type`, schedule_cron FROM assets ORDER BY symbol ASC")
-        raw_assets = cursor.fetchall()
-        
-        # --- 数据兼容性逻辑 ---
-        assets_to_return = []
-        
-        for asset_row in raw_assets: # type: ignore
-            # 手动构建一个具有正确 Python 类型的字典，以避免 bytes vs str 的问题
-            # 我们使用 `type: ignore` 是因为 Pylance 难以处理 mysql-connector 的 RowType
-            asset_dict = {
-                'id': int(asset_row['id']), # type: ignore
-                'symbol': str(asset_row['symbol']), # type: ignore
-                'type': asset_row['type'], # type: ignore
-                'schedule_cron': asset_row['schedule_cron'] # type: ignore
-            }
-            
-            raw_asset_type = asset_dict.get('type')
-            
-            # 必要时处理来自数据库的旧字符串或字节格式
-            if isinstance(raw_asset_type, (str, bytes)):
-                # 必要时将字节解码为字符串
-                type_str = raw_asset_type.decode('utf-8') if isinstance(raw_asset_type, bytes) else raw_asset_type
-                asset_dict['type'] = TYPE_MAPPING.get(type_str.upper(), 0)
-            
-            assets_to_return.append(asset_dict)
-        # --- 兼容性逻辑结束 ---
-            
-        return assets_to_return
+        assets = cursor.fetchall()
+        return assets # type: ignore
     except Exception as e:
         logger.error(f"获取资产时出错: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="获取资产失败。")
@@ -120,21 +95,7 @@ def add_asset(asset_data: CreateAssetRequest):
             cursor.execute("SELECT id, symbol, `type`, schedule_cron FROM assets WHERE id = %s", (new_asset_id,))
             new_asset = cursor.fetchone()
             if new_asset:
-                # 在 Pydantic 验证之前手动构建字典以确保类型正确
-                asset_dict = {
-                    'id': int(new_asset['id']), # type: ignore
-                    'symbol': str(new_asset['symbol']), # type: ignore
-                    'type': new_asset['type'], # type: ignore
-                    'schedule_cron': new_asset['schedule_cron'] # type: ignore
-                }
-
-                # 处理数据库驱动可能返回的非整型类型
-                raw_asset_type = asset_dict['type']
-                if not isinstance(raw_asset_type, int):
-                    type_str = raw_asset_type.decode('utf-8') if isinstance(raw_asset_type, bytes) else str(raw_asset_type)
-                    asset_dict['type'] = TYPE_MAPPING.get(type_str.upper(), 0)
-                
-                return asset_dict
+                return new_asset # type: ignore
 
         # 如果重新获取失败，则回退
         raise HTTPException(status_code=500, detail="未能检索到新创建的资产。")
@@ -169,33 +130,12 @@ def update_asset_schedule_endpoint(asset_id: int, schedule_data: UpdateScheduleR
         updated_asset = cursor.fetchone()
         
         if updated_asset:
-            # 手动构建具有正确类型的字典以避免 bytes/str 问题
-            asset_dict = {
-                'id': int(updated_asset['id']), # type: ignore
-                'symbol': str(updated_asset['symbol']), # type: ignore
-                'type': updated_asset['type'], # type: ignore
-                'schedule_cron': updated_asset['schedule_cron'] # type: ignore
-            }
-
-            # --- 数据兼容性逻辑 ---
-            raw_asset_type = asset_dict['type']
-            asset_type_int: int
-            if isinstance(raw_asset_type, int):
-                asset_type_int = raw_asset_type
-            else:
-                # 处理来自数据库的旧字符串或字节格式
-                type_str = raw_asset_type.decode('utf-8') if isinstance(raw_asset_type, bytes) else str(raw_asset_type)
-                asset_type_int = TYPE_MAPPING.get(type_str.upper(), 0)
-            
-            asset_dict['type'] = asset_type_int
-            # --- 兼容性逻辑结束 ---
-
             update_asset_schedule(
-                symbol=asset_dict['symbol'],
-                cron_string=asset_dict['schedule_cron'],
-                asset_type=asset_dict['type']
+                symbol=str(updated_asset['symbol']), # type: ignore
+                cron_string=updated_asset['schedule_cron'], # type: ignore
+                asset_type=int(updated_asset['type']) # type: ignore
             )
-            return asset_dict
+            return updated_asset # type: ignore
         else:
             raise HTTPException(status_code=404, detail="未能检索到更新后的资产详情。")
 
