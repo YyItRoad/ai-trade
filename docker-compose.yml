@@ -14,8 +14,17 @@ services:
       - .:/app
     # extra_hosts 允许容器连接到宿主机上的服务。
     # 'host.docker.internal' 是一个特殊的DNS名称，它会解析为宿主机的IP地址。
+    networks:
+      - default # Compose 默认网络，用于服务内部组件通信
+      - shared_network # 我们加入的共享网络
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+networks:
+  default:
+  shared_network:
+    external: true
+    name: local-network
 
 volumes:
   db_data:

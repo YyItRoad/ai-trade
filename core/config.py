@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     
     # --- K-line API 设置 ---
     KLINE_API_SECRET_KEY: Optional[str] = None
+    KLINE_API_BASE_URL: str = ""
     
     # --- 应用安全设置 ---
     APP_LOGIN_SECRET_KEY: Optional[str] = None

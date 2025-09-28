@@ -7,7 +7,6 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from core.config import settings
 
-BASE_URL = "https://trade.yangyang.fun/api/v1/kline"
 logger = logging.getLogger(__name__)
 
 def fetch_single_kline(symbol: str, interval: str, asset_type: int):
@@ -29,10 +28,10 @@ def fetch_single_kline(symbol: str, interval: str, asset_type: int):
     }
     logger.info(
         f"发送 K-line 数据请求: symbol={symbol}, interval={interval}, type={asset_type}, "
-        f"url={BASE_URL}"
+        f"url={settings.KLINE_API_BASE_URL}"
     )
     try:
-        response = requests.get(BASE_URL, headers=headers, params=params, timeout=15)
+        response = requests.get(settings.KLINE_API_BASE_URL, headers=headers, params=params, timeout=15)
         response.raise_for_status()
         logger.info(f"成功获取 {symbol} - {interval} 的数据。")
         # 筛选每条K线，只保留前6个元素
