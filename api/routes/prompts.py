@@ -88,9 +88,9 @@ def get_prompt_by_id(prompt_id: int):
         if conn:
             conn.close()
 
-@router.get("/prompts", response_model=Dict[str, List[Prompt]])
+@router.get("/prompts", response_model=List[Prompt])
 def get_all_prompts():
-    """获取所有提示词，并按名称进行分组。"""
+    """获取所有提示词列表。"""
     conn = None
     try:
         conn = get_db_connection()
@@ -98,14 +98,8 @@ def get_all_prompts():
             raise HTTPException(status_code=500, detail="Database connection failed")
         
         prompts_list = _get_prompts_from_db(conn)
-        
-        grouped_prompts: Dict[str, List[Prompt]] = {}
-        for prompt in prompts_list:
-            if prompt.name not in grouped_prompts:
-                grouped_prompts[prompt.name] = []
-            grouped_prompts[prompt.name].append(prompt)
             
-        return grouped_prompts
+        return prompts_list
     except Exception as e:
         logger.error(f"Error fetching prompts: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -134,66 +128,12 @@ def create_prompt(prompt: PromptCreate):
             conn.close()
 
 
-def _activate_prompt_in_db(conn, prompt_id: int) -> Prompt:
-    """在数据库中激活一个 prompt 版本, 并取消激活所有其他的版本。"""
-    cursor = conn.cursor(dictionary=True)
 
-    # 1. 检查 prompt 是否存在
-    cursor.execute("SELECT id FROM prompts WHERE id = %s", (prompt_id,))
-    if not cursor.fetchone():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prompt not found")
-
-    # 2. 在一个事务中更新
-    # a. 取消激活所有的 prompt
-    cursor.execute("UPDATE prompts SET is_active = FALSE")
-    # b. 激活指定的 prompt
-    cursor.execute("UPDATE prompts SET is_active = TRUE WHERE id = %s", (prompt_id,))
-    
-    conn.commit()
-
-    # 3. 获取并返回更新后的对象
-    cursor.execute("SELECT id, name, version, content, is_active, created_at FROM prompts WHERE id = %s", (prompt_id,))
-    updated_row = cursor.fetchone()
-
-    if not updated_row:
-        raise HTTPException(status_code=500, detail="Failed to retrieve the activated prompt.")
-
-    return Prompt(**updated_row) # type: ignore
-
-@router.post("/prompts/{prompt_id}/activate", response_model=Prompt)
-def activate_prompt(prompt_id: int):
-    """将指定的提示词版本设置为激活状态。"""
-    conn = None
-    try:
-        conn = get_db_connection()
-        if conn is None:
-            raise HTTPException(status_code=500, detail="Database connection failed")
-        
-        activated_prompt = _activate_prompt_in_db(conn, prompt_id)
-        return activated_prompt
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        logger.error(f"Error activating prompt {prompt_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
-    finally:
-        if conn:
-            conn.close()
 
 def _delete_prompt_from_db(conn, prompt_id: int) -> bool:
     """从数据库中删除指定 ID 的 prompt。如果删除成功则返回 True。"""
     cursor = conn.cursor(dictionary=True)
     
-    # 检查要删除的 prompt 是否是激活状态
-    cursor.execute("SELECT is_active FROM prompts WHERE id = %s", (prompt_id,))
-    result = cursor.fetchone()
-    if result and result['is_active']: # type: ignore
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete an active prompt. Please activate another version first."
-        )
 
     cursor.execute("DELETE FROM prompts WHERE id = %s", (prompt_id,))
     conn.commit()

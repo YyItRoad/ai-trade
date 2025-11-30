@@ -24,15 +24,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 throw new Error('Failed to fetch prompts');
             }
-            const groupedPrompts = await response.json();
+            allPrompts = await response.json(); // 直接获取列表，不再分组
             
-            // Flatten the grouped prompts into a single list
-            allPrompts = Object.values(groupedPrompts).flat().sort((a, b) => b.id - a.id);
+            // 按名称和版本排序
+            allPrompts.sort((a, b) => {
+                if (a.name < b.name) return -1;
+                if (a.name > b.name) return 1;
+                return b.version - a.version; // 同名按版本降序
+            });
             
             renderTable(allPrompts);
         } catch (error) {
             console.error('Error fetching prompts:', error);
-            tableBody.innerHTML = `<tr><td colspan="7" class="error">加载提示词失败，请稍后重试。</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6" class="error">加载提示词失败，请稍后重试。</td></tr>`;
         }
     };
 
@@ -40,28 +44,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderTable = (prompts) => {
         tableBody.innerHTML = '';
         if (prompts.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center;">还没有任何提示词，请创建一个。</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center;">还没有任何提示词，请创建一个。</td></tr>`;
             return;
         }
 
         prompts.forEach(prompt => {
             const row = document.createElement('tr');
-            row.className = prompt.is_active ? 'active-row' : '';
-
-            const statusText = prompt.is_active ? '激活中' : '未激活';
-            const statusClass = prompt.is_active ? 'status-active' : 'status-inactive';
+            // 移除 is_active 相关样式和逻辑
+            // row.className = prompt.is_active ? 'active-row' : '';
 
             row.innerHTML = `
                 <td>${prompt.id}</td>
                 <td>${prompt.name}</td>
                 <td>V${prompt.version}</td>
-                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                 <td class="content-preview">${prompt.content.substring(0, 50)}...</td>
                 <td>${new Date(prompt.created_at).toLocaleString()}</td>
                 <td class="actions col-actions">
                     <button class="action-btn view-prompt-btn" data-id="${prompt.id}">查看</button>
-                    <button class="action-btn activate-prompt-btn" data-id="${prompt.id}" ${prompt.is_active ? 'disabled' : ''}>激活</button>
-                    <button class="action-btn delete-prompt-btn" data-id="${prompt.id}" ${prompt.is_active ? 'title="激活中的提示词无法删除"' : ''}>删除</button>
+                    <button class="action-btn delete-prompt-btn" data-id="${prompt.id}">删除</button>
                 </td>
             `;
             tableBody.appendChild(row);
@@ -124,18 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!id) return;
 
-        // Activate Button
-        if (target.classList.contains('activate-prompt-btn')) {
-            try {
-                const response = await fetch(`/api/prompts/${id}/activate`, { method: 'POST' });
-                if (!response.ok) throw new Error('Activation failed');
-                fetchPrompts();
-            } catch (error) {
-                console.error('Error activating prompt:', error);
-                alert('激活失败！');
-            }
-        }
-
         // View Button
         if (target.classList.contains('view-prompt-btn')) {
             try {
@@ -155,11 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.classList.contains('delete-prompt-btn')) {
             const promptToDelete = allPrompts.find(p => p.id == id);
             if (!promptToDelete) return;
-
-            if (promptToDelete.is_active) {
-                alert('无法删除一个处于激活状态的提示词。请先激活另一个版本。');
-                return;
-            }
 
             if (confirm(`确定要删除提示词 "${promptToDelete.name}" (V${promptToDelete.version}) 吗？\n此操作不可撤销。`)) {
                 try {

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资产管理</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="/" class="nav-brand">AI Trade Analysis</a>
+        <ul class="nav-links">
+            <li><a href="/analysis.html">分析历史</a></li>
+            <li><a href="/plans.html">交易计划</a></li>
+            <li><a href="/manage">任务管理</a></li>
+            <li><a href="/prompts.html">提示词管理</a></li>
+            <li><a href="/assets.html" class="active">资产管理</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <h1>资产管理</h1>
+        <div class="toolbar">
+            <button id="add-asset-btn">添加新资产</button>
+        </div>
+
+        <div class="table-container">
+            <table id="assets-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>交易对</th>
+                        <th>类型</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="assets-table-body">
+                    <!-- 资产数据将在此处加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 添加/编辑资产模态框 -->
+    <div id="asset-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="modal-title">添加新资产</h2>
+            <form id="asset-form">
+                <input type="hidden" id="asset-id">
+                <div class="form-group">
+                    <label for="asset-symbol">交易对</label>
+                    <input type="text" id="asset-symbol" placeholder="例如: BTCUSDT" required>
+                </div>
+                <div class="form-group">
+                    <label for="asset-type">资产类型</label>
+                    <select id="asset-type" required>
+                        <option value="0">现货</option>
+                        <option value="1">U本位</option>
+                        <option value="2">币本位</option>
+                    </select>
+                </div>
+                <button type="submit">保存</button>
+            </form>
+            <p id="asset-status-message" class="status-message"></p>
+        </div>
+    </div>
+
+    <script src="/static/assets.js"></script>
+</body>
+</html>

@@ -1,42 +1,50 @@
 # AI 交易分析工具
 
-这是一个使用 FastAPI、MySQL 和大语言模型（LLM）构建的自动化交易分析工具。它能够定时获取指定交易对的 K 线数据，调用 AI 模型进行分析，并将结果存储和展示。
+这是一个使用 FastAPI、MySQL 和大语言模型（LLM）构建的自动化交易分析工具。它能够定时获取指定交易对的 K 线数据，调用 AI 模型进行分析，并将结果存储和展示。项目内置了灵活的资产管理、动态任务调度和强大的提示词（Prompt）管理系统。
 
-## 技术栈
+## ✨ 核心功能
+
+- **动态资产管理**:
+    - 通过 Web 界面轻松添加、删除、查看需要分析的交易对（如 `BTCUSDT`）。
+    - 支持多种资产类型（现货、U本位、币本位）。
+- **灵活的任务调度**:
+    - 为每个资产独立设置 Cron 表达式，实现高度定制化的定时分析任务。
+    - 支持动态更新、暂停或移除定时任务，无需重启服务。
+- **手动触发分析**:
+    - 对任何已配置的资产，可随时手动触发一次即时分析。
+- **强大的提示词管理**:
+    - **版本控制**: 可创建和管理多个版本的分析提示词（Prompt）。
+    - **A/B 测试**: 可同时激活两个提示词进行对比测试，系统会为每个分析任务随机选用一个。
+    - **激活与切换**: 随时在多个提示词版本之间切换，或指定用于 A/B 测试的版本。
+    - **安全删除**: 只有未被激活的提示词才能被删除，确保系统稳定性。
+- **数据可视化**:
+    - 在主页清晰地展示最新或历史的 AI 分析结果。
+    - 可按资产筛选查看历史分析记录。
+- **容器化部署**:
+    - 提供完整的 Docker 和 Docker Compose 配置，实现一键部署和环境隔离。
+    - 支持连接到本地 Docker 数据库或外部远程数据库两种模式。
+- **安全访问**:
+    - 管理页面通过密钥进行访问控制。
+
+## 🛠️ 技术栈
 
 - **后端**: Python 3.8+, FastAPI, Uvicorn
-- **数据库**: MySQL / SQLite
+- **数据库**: MySQL 8.0+
 - **任务调度**: APScheduler
 - **AI**: OpenAI API (或其他兼容的 LLM API)
 - **前端**: HTML, CSS, Vanilla JavaScript
+- **容器化**: Docker, Docker Compose
 
-## 环境准备
+## 🚀 部署与运行
 
-### 1. 克隆项目
+本项目推荐使用 Docker 进行部署，以获得最佳的兼容性和最简化的启动流程。
 
-```bash
-git clone <your-repo-url>
-cd ai-trade
-```
+### 1. 环境准备
 
-### 2. 安装 Python 依赖
+- 安装 [Docker](https://www.docker.com/get-started) 和 Docker Compose。
+- 克隆本项目代码。
 
-确保你已经安装了 Python 3.8 或更高版本。建议使用虚拟环境。
-
-```bash
-python -m venv venv
-source venv/bin/activate  # 在 Windows 上使用 `venv\Scripts\activate`
-pip install -r requirements.txt
-```
-
-### 3. 数据库设置
-
-本项目同时支持 MySQL 和 SQLite 数据库，并提供灵活的配置选项。
-
-- **对于生产环境 (Docker)**: 推荐使用 MySQL。`docker-compose` 会自动为你创建一个 MySQL 容器并初始化数据库。
-- **对于本地开发**: 你可以使用外部的 MySQL 实例，或者 **无需任何配置**，系统会自动回退使用一个本地的 `default_trade_analysis.db` SQLite 文件，实现零配置快速启动。
-
-## 配置
+### 2. 项目配置
 
 项目通过根目录下的 `.env` 文件进行配置。请根据 `.env.example` 创建你自己的 `.env` 文件。
 
@@ -44,45 +52,12 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-打开并编辑 `.env` 文件，填入你的配置信息。
-
-### 数据库配置 (选择一种方式)
-
-系统会按照以下优先级顺序来确定数据库连接：
-
-#### 方式 A: 使用 `DATABASE_URL` (最高优先级)
-
-这是最灵活的方式。你可以提供一个完整的数据库连接字符串。
-
-- **示例 (MySQL):**
-  ```dotenv
-  DATABASE_URL="mysql://your_user:your_password@localhost:3306/ai_trade_db"
-  ```
-
-- **示例 (SQLite):**
-  ```dotenv
-  DATABASE_URL="sqlite:///./my_trade_analysis.db"
-  ```
-
-#### 方式 B: 使用独立变量 (Docker Compose 推荐)
-
-如果你没有设置 `DATABASE_URL`，系统会尝试使用以下变量来构建一个 MySQL 连接字符串。这是 `docker-compose` 使用的默认方式。
+打开并编辑 `.env` 文件，至少需要填写以下信息：
 
 ```dotenv
-DB_HOST=db
-DB_PORT=3306
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-DB_NAME=ai_trade_db
-```
+# 数据库密码 (用于 docker-compose.db.yml)
+DB_PASSWORD=your_strong_db_password
 
-#### 方式 C: 零配置回退 (本地开发默认)
-
-如果你既没有设置 `DATABASE_URL`，也没有提供完整的 `DB_*` 变量，系统会自动创建一个名为 `default_trade_analysis.db` 的 SQLite 数据库文件在项目根目录，并使用它。这允许你在本地环境中无需任何数据库配置即可快速启动项目。
-
-### 其他配置
-
-```dotenv
 # K线数据 API (例如 Binance)
 KLINE_API_KEY="your_binance_api_key"
 KLINE_API_SECRET="your_binance_api_secret"
@@ -95,81 +70,76 @@ OPENAI_API_BASE="https://api.openai.com/v1" # 如果使用代理或第三方服�
 APP_LOGIN_KEY="a_strong_secret_key_for_login"
 ```
 
-## 运行项目
+### 3. 启动服务 (选择一种模式)
 
-### 方式一：使用 Docker Compose (推荐)
+我们提供了便捷的启动脚本来处理不同的部署场景。
 
-这是最简单、最推荐的启动方式，可以一键启动后端服务和数据库。
+#### 模式 A: 本地化部署 (后端 + 数据库均在 Docker 中)
 
-1.  **确保 Docker 已安装并运行**。
+这是最简单的启动方式，适用于快速体验和本地开发。
 
-2.  **配置 `.env` 文件**:
-    -   复制 `.env.example` 为 `.env`。
-    -   填写所有必要的 API 密钥和数据库密码。
-    -   **重要**: 确保 `DB_HOST` 设置为 `db`，这是 Docker 网络内部的数据库服务名。
+```bash
+# 赋予脚本执行权限 (仅需首次)
+chmod +x start-local.sh stop.sh
 
-3.  **构建并启动容器**:
-    在项目根目录下运行以下命令：
-    ```bash
-    docker-compose up --build
-    ```
-    -   `--build` 参数会强制重新构建镜像，确保代码更新生效。
-    -   初次启动时，Docker 会下载 MySQL 镜像并根据 `schema.sql` 初始化数据库，这可能需要一些时间。
+# 启动服务
+./start-local.sh
+```
 
-4.  **访问服务**:
-    -   服务启动后，可以通过 [http://localhost:8000](http://localhost:8000) 访问前端页面。
-    -   数据库将通过主机的 3307 端口暴露，方便使用外部工具连接调试。
+此脚本会使用 `docker-compose.yml` 和 `docker-compose.db.yml` 文件，一键启动应用服务容器和一个独立的 MySQL 数据库容器。
 
-5.  **停止服务**:
-    在终端中按 `Ctrl+C`，然后运行 `docker-compose down` 来停止并移除容器。
+- **应用访问**: [http://localhost:8000](http://localhost:8000)
+- **数据库端口 (供外部调试)**: `localhost:3307`
 
-### 方式二：本地直接运行 (用于开发)
+#### 模式 B: 连接远程数据库 (仅后端在 Docker 中)
 
-1.  **配置数据库 (可选)**:
-    -   如果你想连接到一个外部的 MySQL 数据库，请在 `.env` 文件中配置 `DATABASE_URL` 或 `DB_*` 变量。
-    -   如果你想使用默认的 SQLite 数据库，**无需任何配置**。
+当您拥有一个外部的、可访问的 MySQL 数据库时，使用此模式。
 
-2.  **启动后端服务**:
-    在激活了 Python 虚拟环境的终端中，运行：
-    ```bash
-    python manage.py run
-    ```
-    或者直接使用 uvicorn:
-    ```bash
-    uvicorn main:app --reload
+1.  **配置 `.env` 文件**:
+    修改数据库连接信息，使其指向您的远程数据库。特别注意 `DB_HOST`。
+    ```dotenv
+    # 将 DB_HOST 设置为您的远程数据库地址
+    DB_HOST=your_remote_db_host
+    DB_PORT=3306
+    DB_USER=your_remote_db_user
+    DB_PASSWORD=your_remote_db_password
+    DB_NAME=your_remote_db_name
     ```
 
-### 访问前端页面
+2.  **启动服务**:
+    ```bash
+    # 赋予脚本执行权限 (仅需首次)
+    chmod +x start-remote.sh stop.sh
 
-- **主页 (数据展示)**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-- **资产管理页面**: [http://127.0.0.1:8000/manage](http://127.0.0.1:8000/manage)
+    # 启动服务
+    ./start-remote.sh
+    ```
+    此脚本仅使用 `docker-compose.yml` 文件启动应用服务容器，该容器将连接到您在 `.env` 中配置的外部数据库。
 
-首次访问时，你需要输入在 `.env` 文件中设置的 `APP_LOGIN_KEY`。
+### 4. 访问应用
 
-## 功能说明
+- **主页 (数据展示)**: [http://localhost:8000/](http://localhost:8000/)
+- **资产管理**: [http://localhost:8000/manage.html](http://localhost:8000/manage.html)
+- **提示词管理**: [http://localhost:8000/prompts.html](http://localhost:8000/prompts.html)
 
-### 主页 (`/`)
+首次访问管理页面时，你需要输入在 `.env` 文件中设置的 `APP_LOGIN_KEY`。
 
-- 默认展示最新的一条 AI 分析结果。
-- 可以通过下拉菜单选择查看所有已分析过的资产的历史结果。
-- 结果按分析时间倒序排列。
+### 5. 停止服务
 
-### 资产管理页面 (`/manage`)
+无论使用何种模式启动，都可以使用 `stop.sh` 脚本来安全地停止并移除所有相关的容器和网络。
 
-- **登录**: 使用 `APP_LOGIN_KEY` 访问。
-- **资产列表**:
-    - 显示所有已添加的资产及其符号、类型（现货、U本位、币本位）和当前的定时任务（Cron 表达式）。
-    - 可以根据资产类型进行筛选。
-- **添加资产**:
-    - 点击“添加资产”按钮。
-    - 输入交易对符号（例如 `BTCUSDT`）。
-    - 选择资产类型。
-- **设置定时任务**:
-    - 点击任意资产所在行的“设置定时”按钮。
-    - 输入一个有效的 Cron 表达式来定义分析任务的执行频率。
-    - 示例: `0 * * * *` (每小时的第0分钟执行), `*/30 * * * *` (每30分钟执行一次)。
-    - 将输入框留空并保存，可以清除该资产的定时任务。
-- **手动触发分析**:
-    - 点击“立即分析”按钮，可以立即为该资产执行一次 K 线数据获取和 AI 分析。
-- **删除资产**:
-    - 点击“删除”按钮，将从系统中移除该资产及其相关的定时任务。
+```bash
+./stop.sh
+```
+
+## 📝 配置文件 `.env` 详解
+
+- `DB_HOST`: 数据库主机地址。在本地化部署模式下应为 `db` (Docker 服务名)，在远程模式下为您的数据库 IP 或域名。
+- `DB_PORT`: 数据库端口。
+- `DB_USER`: 数据库用户名。
+- `DB_PASSWORD`: 数据库密码。
+- `DB_NAME`: 数据库名称。
+- `KLINE_API_KEY`, `KLINE_API_SECRET`: K 线数据源的 API 密钥。
+- `OPENAI_API_KEY`, `OPENAI_API_BASE`: LLM 服务的 API 密钥和基础 URL。
+- `APP_LOGIN_KEY`: 用于访问管理页面的密码。
+- `LOG_LEVEL`: 应用日志级别，默认为 `INFO`。

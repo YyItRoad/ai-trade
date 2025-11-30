@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行情分析历史</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="/" class="nav-brand">AI Trade Analysis</a>
+        <ul class="nav-links">
+            <li><a href="/analysis.html" class="active">分析历史</a></li>
+            <li><a href="/plans.html">交易计划</a></li>
+            <li><a href="/manage">任务管理</a></li>
+            <li><a href="/prompts.html">提示词管理</a></li>
+            <li><a href="/assets.html">资产管理</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <h1>行情分析历史</h1>
+        <div class="table-container">
+            <table id="analysis-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>资产</th>
+                        <th>周期</th>
+                        <th>分析时间</th>
+                        <th>趋势判断</th>
+                        <th>置信度</th>
+                        <th>结论</th>
+                    </tr>
+                </thead>
+                <tbody id="analysis-table-body">
+                    <!-- 数据将在此处加载 -->
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <!-- 分页控件将在此处生成 -->
+        </div>
+    </div>
+    <script src="/static/analysis.js"></script>
+</body>
+</html>

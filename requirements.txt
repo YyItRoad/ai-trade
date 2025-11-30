@@ -13,3 +13,4 @@ croniter
 colorlog
 
 requests
+fastmcp

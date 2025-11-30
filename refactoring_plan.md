@@ -1,26 +1,22 @@
--- assets: 可供分析的资产配置表
-CREATE TABLE IF NOT EXISTS assets (
-    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '资产ID',
-    symbol VARCHAR(50) NOT NULL COMMENT '交易对符号',
-    `type` INT NOT NULL COMMENT '资产类型: 0(现货), 1(U本位), 2(币本位)',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    UNIQUE KEY `idx_symbol_type` (`symbol`, `type`)
-) COMMENT='可供分析的资产配置表';
+# 项目架构重构方案 (最终版)
 
--- prompts: 存储不同版本的AI分析提示词
-CREATE TABLE IF NOT EXISTS prompts (
-    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
-    name VARCHAR(255) NOT NULL COMMENT '提示词名称/标识符, 用于对版本进行分组',
-    version INT NOT NULL COMMENT '版本号, 每个name下自增',
-    content TEXT NOT NULL COMMENT '提示词的具体内容',
-    is_active BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否为当前全局激活的版本',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    UNIQUE KEY `idx_name_version` (`name`, `version`),
-    INDEX `idx_is_active` (`is_active`)
-) COMMENT='存储不同版本的AI分析提示词';
+## 1. 目标
 
--- scheduled_tasks: 定时分析任务配置表 (新增)
-CREATE TABLE IF NOT EXISTS scheduled_tasks (
+本次重构旨在优化现有系统架构，以支持更复杂和灵活的交易分析策略。主要目标如下：
+
+1.  **增强任务调度能力**：允许为单一资产配置多个不同周期、使用不同分析模型的定时任务。
+2.  **引入交易计划为核心**：新增 `trade_plan` 表作为核心，存储结构化的、可执行的交易信号。
+3.  **结构化分析结果**：重构 `trade_analysis` 表，使其包含关键的分析结果摘要，便于查询和展示。
+4.  **提升可维护性**：新增 `dictionary` 表，用于统一管理系统中的常量和其中文名称的映射关系。
+
+## 2. 数据库结构变更
+
+### 2.1. `assets` 表 (资产配置表)
+-   **变更**: 移除 `schedule_cron VARCHAR(100)` 字段。
+
+### 2.2. `scheduled_tasks` 表 (定时任务表) - (新增)
+```sql
+CREATE TABLE scheduled_tasks (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '任务ID',
     asset_id INT NOT NULL COMMENT '关联的资产ID',
     prompt_id INT NOT NULL COMMENT '关联的提示词ID',
@@ -32,9 +28,11 @@ CREATE TABLE IF NOT EXISTS scheduled_tasks (
     FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE,
     FOREIGN KEY (prompt_id) REFERENCES prompts(id) ON DELETE CASCADE
 ) COMMENT='定时分析任务配置表';
+```
 
--- trade_analysis: AI行情分析结果表 (重构)
-CREATE TABLE IF NOT EXISTS trade_analysis (
+### 2.3. `trade_analysis` 表 (行情分析结果表) - (重构)
+```sql
+CREATE TABLE trade_analysis (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID',
     asset VARCHAR(50) NOT NULL COMMENT '资产符号 (币种)',
     timestamp DATETIME NOT NULL COMMENT '分析时间戳 (时间)',
@@ -47,9 +45,11 @@ CREATE TABLE IF NOT EXISTS trade_analysis (
     FOREIGN KEY (prompt_id) REFERENCES prompts(id) ON DELETE SET NULL,
     INDEX idx_asset_timestamp (asset, timestamp)
 ) COMMENT='AI行情分析结果表';
+```
 
--- trade_plan: AI 生成的交易计划表 (新增)
-CREATE TABLE IF NOT EXISTS trade_plan (
+### 2.4. `trade_plan` 表 (交易计划表) - (新增)
+```sql
+CREATE TABLE trade_plan (
   id INT NOT NULL AUTO_INCREMENT COMMENT '交易计划ID',
   asset VARCHAR(50) NOT NULL COMMENT '交易资产，例如 BTCUSDT',
   cycle ENUM('1m','5m','15m','1h','4h','1d') NOT NULL COMMENT '对应分析周期',
@@ -74,9 +74,11 @@ CREATE TABLE IF NOT EXISTS trade_plan (
   CONSTRAINT trade_plan_ibfk_2
     FOREIGN KEY (prompt_id) REFERENCES prompts (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 生成的交易计划表';
+```
 
--- dictionary: 用于前后端常量与中文名称映射的字典表 (新增)
-CREATE TABLE IF NOT EXISTS dictionary (
+### 2.5. `dictionary` 表 (字段常量映射表) - (新增)
+```sql
+CREATE TABLE dictionary (
     id INT AUTO_INCREMENT PRIMARY KEY,
     category VARCHAR(100) NOT NULL COMMENT '常量类别 (e.g., trade_plan_status, direction)',
     code VARCHAR(100) NOT NULL COMMENT '英文代码 (e.g., ACTIVE, LONG)',
@@ -84,3 +86,64 @@ CREATE TABLE IF NOT EXISTS dictionary (
     description TEXT NULL COMMENT '描述',
     UNIQUE KEY idx_category_code (category, code)
 ) COMMENT='用于前后端常量与中文名称映射的字典表';
+```
+
+## 3. 数据库关系图 (ERD)
+
+```mermaid
+erDiagram
+    assets {
+        int id PK
+        varchar symbol
+    }
+    prompts {
+        int id PK
+        varchar name
+    }
+    scheduled_tasks {
+        int id PK
+        int asset_id FK
+        int prompt_id FK
+    }
+    trade_analysis {
+        int id PK
+        varchar asset
+        int prompt_id FK
+    }
+    trade_plan {
+        int id PK
+        varchar asset
+        int analysis_id FK
+        int prompt_id FK
+    }
+    dictionary {
+        int id PK
+        varchar category
+        varchar code
+    }
+    assets }o--|| scheduled_tasks : "has"
+    prompts }o--|| scheduled_tasks : "uses"
+    trade_analysis }|--o{ trade_plan : "generates"
+    prompts }o--|| trade_analysis : "used for"
+    prompts }o--|| trade_plan : "used for"
+```
+
+## 4. 应用层代码影响
+
+-   **`core/database.py`**: 需要更新或新增所有相关表的模型定义 (`Assets`, `ScheduledTask`, `TradeAnalysis`, `TradePlan`, `Dictionary`)。
+-   **`services/analysis_service.py`**: 核心服务逻辑需要重写，以同时解析AI响应，并将数据分别填充到新的 `trade_analysis` 表（包含趋势、结论等）和 `trade_plan` 表。
+-   **`core/scheduler.py`**: 调度逻辑需要重构，从 `scheduled_tasks` 表中读取任务配置。
+-   **`api/` 目录**:
+    -   为 `scheduled_tasks` 创建新的CRUD API。
+    -   为 `trade_plan` 创建新的查询和修改API。
+    -   为 `trade_analysis` 创建新的查询API。
+    -   为 `dictionary` 创建新的只读API。
+-   **前端**:
+    -   应用加载时，调用API获取所有字典映射数据。
+    -   创建新页面来展示 `trade_analysis` 和 `trade_plan` 的数据。
+    -   在展示时，使用字典数据将英文代码转换为中文标签。
+
+## 5. 下一步
+
+1.  请确认这份**完整**的最终方案是否符合您的全部预期。
+2.  如果确认，我们将以此为蓝图，切换到 `code` 模式开始实现。

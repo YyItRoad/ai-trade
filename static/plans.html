@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易计划</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="/" class="nav-brand">AI Trade Analysis</a>
+        <ul class="nav-links">
+            <li><a href="/analysis.html">分析历史</a></li>
+            <li><a href="/plans.html" class="active">交易计划</a></li>
+            <li><a href="/manage">任务管理</a></li>
+            <li><a href="/prompts.html">提示词管理</a></li>
+            <li><a href="/assets.html">资产管理</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <h1>交易计划</h1>
+        <div class="table-container">
+            <table id="plans-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>资产</th>
+                        <th>周期</th>
+                        <th>方向</th>
+                        <th>入场点</th>
+                        <th>止损点</th>
+                        <th>止盈点 1</th>
+                        <th>止盈点 2</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="plans-table-body">
+                    <!-- 数据将在此处加载 -->
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <!-- 分页控件将在此处生成 -->
+        </div>
+    </div>
+
+    <!-- 状态更新模态框 -->
+    <div id="status-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>更新计划状态</h2>
+            <p>正在为计划 ID: <strong id="plan-id-display"></strong> 更新状态。</p>
+            <form id="status-form">
+                <input type="hidden" id="plan-id-input">
+                <div class="form-group">
+                    <label for="plan-status-select">新状态</label>
+                    <select id="plan-status-select" required></select>
+                </div>
+                <button type="submit">确认更新</button>
+            </form>
+            <p id="status-message" class="status-message"></p>
+        </div>
+    </div>
+
+    <script src="/static/plans.js"></script>
+</body>
+</html>

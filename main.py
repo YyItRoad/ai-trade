@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from api.routes import analysis, assets, auth, prompts
+from api.routes import analysis, assets, auth, prompts, tasks, plans, dictionary
 from core.scheduler import scheduler, start_scheduler
 from core.database import init_db, init_connection_pool, close_connection_pool
 from core.logger import setup_logging
@@ -55,6 +55,9 @@ app.include_router(analysis.router, prefix="/api", tags=["分析"])
 app.include_router(assets.router, prefix="/api", tags=["资产"])
 app.include_router(auth.router, prefix="/api", tags=["认证"])
 app.include_router(prompts.router, prefix="/api", tags=["提示词"])
+app.include_router(tasks.router, prefix="/api", tags=["定时任务"])
+app.include_router(plans.router, prefix="/api", tags=["交易计划"])
+app.include_router(dictionary.router, prefix="/api", tags=["字典"])
 
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -68,15 +71,30 @@ async def read_login_page():
 
 @app.get("/", response_class=FileResponse, include_in_schema=False)
 async def read_root():
-    """提供前端主页面"""
-    return "static/index.html"
+    """提供前端主页面 (重定向到分析页面)"""
+    return "static/analysis.html"
+
+@app.get("/analysis.html", response_class=FileResponse, include_in_schema=False)
+async def analysis_page():
+    """提供行情分析页面"""
+    return "static/analysis.html"
+
+@app.get("/plans.html", response_class=FileResponse, include_in_schema=False)
+async def plans_page():
+    """提供交易计划页面"""
+    return "static/plans.html"
 
 @app.get("/manage", response_class=FileResponse, include_in_schema=False)
-async def manage_assets_page():
-    """提供资产管理页面"""
+async def manage_tasks_page():
+    """提供任务管理页面"""
     return "static/manage.html"
 
 @app.get("/prompts.html", response_class=FileResponse, include_in_schema=False)
 async def prompts_page():
     """提供提示词管理页面"""
     return "static/prompts.html"
+
+@app.get("/assets.html", response_class=FileResponse, include_in_schema=False)
+async def assets_page():
+    """提供资产管理页面"""
+    return "static/assets.html"
